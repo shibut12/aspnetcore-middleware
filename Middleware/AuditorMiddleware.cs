@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
 using System;
 using System.IO;
 using System.Text;
@@ -25,12 +26,16 @@ namespace aspnetcore_middleware.Middleware
             var requestLog = $"REQUEST HttpMethod: {context.Request.Method}, Path: {context.Request.Path}";
             var responseLog = $"REQUEST HttpMethod: {context.Request.Method}, Path: {context.Request.Path}";
 
+            string request = "";
+            string response = "";
+
             using (var bodyReader = new StreamReader(context.Request.Body))
             {
                 var bodyAsText = bodyReader.ReadToEnd();
                 if (string.IsNullOrWhiteSpace(bodyAsText) == false)
                 {
                     requestLog += $", Body : {bodyAsText}";
+                    request = bodyAsText;
                 }
 
                 var bytesToWrite = Encoding.UTF8.GetBytes(bodyAsText);
@@ -47,11 +52,22 @@ namespace aspnetcore_middleware.Middleware
             {
                 context.Response.Body = responseBody;
                 await _next(context);
-                responseLog += $", Body : {await FormatResponse(context.Response)}"; 
+
+                response = await FormatResponse(context.Response);
+                responseLog += $", Body : {response}";
+                
                 await responseBody.CopyToAsync(originalBodyStream);
             }
 
             Console.WriteLine($"After data {responseLog}");
+
+            if(!string.IsNullOrEmpty(request) && !string.IsNullOrEmpty(response))
+            {
+                dynamic jRequest = JsonConvert.DeserializeObject(request);
+                dynamic jResponse = JsonConvert.DeserializeObject(response);
+                Console.WriteLine($"Request- Name {jRequest["name"]}");
+                Console.WriteLine($"Response- Name {jResponse["name"]}");
+            }
         }
 
         private async Task<string> FormatResponse(HttpResponse response)
