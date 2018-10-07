@@ -23,7 +23,7 @@ namespace aspnetcore_middleware.Controllers
 
         [HttpPost]
         public IActionResult Post(Product product){
-            return Ok(product.Name);
+            return Ok(product);
         }
     }
 }

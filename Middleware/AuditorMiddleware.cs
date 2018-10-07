@@ -9,6 +9,7 @@ namespace aspnetcore_middleware.Middleware
     public class AuditorMiddleware
     {
         private readonly RequestDelegate _next;
+        private const int ReadChunkBufferLength = 4096;
 
         public AuditorMiddleware(RequestDelegate next)
         {
@@ -17,10 +18,12 @@ namespace aspnetcore_middleware.Middleware
 
         public async Task InvokeAsync(HttpContext context)
         {
-            Console.WriteLine("Before");
+            context.Request.EnableBuffering();
 
             var injectedRequestStream = new MemoryStream();
+            var injectedResponseStream = new MemoryStream();
             var requestLog = $"REQUEST HttpMethod: {context.Request.Method}, Path: {context.Request.Path}";
+            var responseLog = $"REQUEST HttpMethod: {context.Request.Method}, Path: {context.Request.Path}";
 
             using (var bodyReader = new StreamReader(context.Request.Body))
             {
@@ -36,11 +39,28 @@ namespace aspnetcore_middleware.Middleware
                 context.Request.Body = injectedRequestStream;
             }
 
-            Console.WriteLine($"data {requestLog}");
+            Console.WriteLine($"Before data {requestLog}");
 
-            await _next(context);
 
-            Console.WriteLine("After");
+            var originalBodyStream = context.Response.Body;
+            using (var responseBody = new MemoryStream())
+            {
+                context.Response.Body = responseBody;
+                await _next(context);
+                responseLog += $", Body : {await FormatResponse(context.Response)}"; 
+                await responseBody.CopyToAsync(originalBodyStream);
+            }
+
+            Console.WriteLine($"After data {responseLog}");
+        }
+
+        private async Task<string> FormatResponse(HttpResponse response)
+        {
+            response.Body.Seek(0, SeekOrigin.Begin);
+            var text = await new StreamReader(response.Body).ReadToEndAsync();
+            response.Body.Seek(0, SeekOrigin.Begin);
+
+            return text;
         }
     }
 }
