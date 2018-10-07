@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using aspnetcore_middleware.Middleware;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace aspnetcore_middleware
@@ -18,6 +14,7 @@ namespace aspnetcore_middleware
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+           app.UseAuditor();
            app.UseMvc();
         }
     }
